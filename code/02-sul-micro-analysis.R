@@ -1,4 +1,4 @@
-# R-script 01-sc-micro-analysis.R
+# R-script 02-sul-micro-analysis.R
 
 # Setup -------------------------------------------------------------------
 rm(list = ls())
@@ -41,35 +41,39 @@ source("code/functions/fct_cormatrix.R")
 
 # Tabela t1554
 source("code/functions/data_df_t1554.R")
+df_t1554 <- data_df_t1554(c(41, 42, 43))
 
 # Exportações
 source("code/functions/data_exp_mun.R")
+exp_comex <- exp_comex(c('SC', 'PR', 'RS'))
 
 # Localizações
 source("code/functions/data_loc.R")
+loc <- data_loc(c('SC', 'PR', 'RS'))
 
 # Poligonos de SC
-source("code/functions/data_sc_shp.R")
-# plot(sc_shp['cd_mun'])
+source("code/functions/data_sul_shp.R")
+sf <- get_sul_sf()
+plot(sf['sigla_uf'])
 
 
 # Join --------------------------------------------------------------------
 
 suppressWarnings(
-  micro_shp <- dplyr::left_join(sc_shp, loc, by = 'cd_mun') %>% 
-    na.omit() %>% 
-    group_by(cd_micro) %>% 
-    summarise(.groups = 'drop') %>% 
-    cent_as_cols(.) %>% 
-    st_set_crs(4326)
+  suppressMessages(
+    micro_shp <- dplyr::left_join(sf, loc, by = 'cd_mun') %>% 
+      stats::na.omit() %>% 
+      dplyr::group_by(cd_micro) %>%
+      dplyr::summarise() %>% 
+      cent_as_cols(.) %>% 
+      sf::st_set_crs(4326)
+  )
 )
 
-data <- dplyr::left_join(exp_comex, df, by='cd_mun') %>%
+data <- dplyr::left_join(exp_comex, df_t1554, by='cd_mun') %>%
   dplyr::left_join(., loc, by = "cd_mun") %>% 
-  # stats::na.omit(.) %>% 
-  dplyr::group_by(cd_micro, nm_micro) %>% 
+  dplyr::group_by(cd_micro) %>% 
   dplyr::summarise(
-    nm_micro = first(nm_micro),
     pop_sup_comp = sum(pop_sup_comp, na.rm = T),
     log_pop_sup_comp = log(sum(pop_sup_comp, na.rm = T)),
     exp = sum(exp_fob, na.rm = T),
@@ -98,7 +102,7 @@ data$reg_res <- reg$residuals
 data$reg_res_norm <- normalize(reg$residuals)
 hist(data$reg_res_norm, 30)
 
-# Definição de visinhança entre as minirregiões
+# Definição de visinhança entre as microrregiões
 nb <- spdep::poly2nb(data, queen=TRUE)
 lw <- nb2listw(nb, style="W", zero.policy=TRUE)
 
@@ -139,7 +143,7 @@ results$cd_micro <- data$cd_micro
 results$nm_micro <- data$nm_micro
 
 results %>% 
-  dplyr::select('cd_micro', 'nm_micro', 'log_pop_sup_comp', 'log_pop_sup_comp_se', 'gwr.e', 'pred', 'pred.se', 'localR2', 'coords.x1', 'coords.x2')
+  dplyr::select('cd_micro', 'nm_micro', 'log_pop_sup_comp', 'log_pop_sup_comp_se', 'gwr.e', 'pred', 'pred.se', 'localR2', 'coords.x1', 'coords.x2') %>% 
   knitr::kable(.)
 
 # Spatial df with the results from GWR attached to the polygons
