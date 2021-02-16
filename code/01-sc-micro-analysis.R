@@ -41,17 +41,20 @@ source("code/functions/fct_cormatrix.R")
 
 # Tabela t1554
 source("code/functions/data_df_t1554.R")
+df_t1554 <- data_df_t1554(c(42))
 
 # Exportações
 source("code/functions/data_exp_mun.R")
+exp_comex <- data_exp_comex(ufs = c('SC'), sh2s = F)
 
 # Localizações
 source("code/functions/data_loc.R")
+loc <- data_loc(c('SC'))
 
 # Poligonos de SC
 source("code/functions/data_sc_shp.R")
-# plot(sc_shp['cd_mun'])
-
+# sf <- get_sul_sf()
+plot(sf['sigla_uf'])
 
 # Join --------------------------------------------------------------------
 
@@ -64,7 +67,7 @@ suppressWarnings(
     st_set_crs(4326)
 )
 
-data <- dplyr::left_join(exp_comex, df, by='cd_mun') %>%
+data <- dplyr::left_join(exp_comex, df_t1554, by='cd_mun') %>%
   dplyr::left_join(., loc, by = "cd_mun") %>% 
   # stats::na.omit(.) %>% 
   dplyr::group_by(cd_micro, nm_micro) %>% 
