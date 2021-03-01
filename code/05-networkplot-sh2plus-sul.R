@@ -61,6 +61,9 @@ exp6 <- ss %>%
   dplyr::select(sg_uf, sh2, exp)
 exp6
 ig <- igraph::graph_from_data_frame(exp6, directed = FALSE)
+ig
+
+library(ggraph)
 ggraph(ig, layout = "manual", x = V(ig)$x, y = V(ig)$y) + 
   geom_edge_link0(aes(alpha = exp, width = exp, colour = exp)) + 
   scale_edge_colour_gradient(low = "#87CEFF", 

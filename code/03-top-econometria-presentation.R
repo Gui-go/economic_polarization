@@ -27,6 +27,7 @@ if(!require(spdep)){install.packages("spdep")}
 if(!require(vroom)){install.packages("vroom")}
 if(!require(jtools)){install.packages("jtools")}
 if(!require(GGally)){install.packages("GGally")}
+if(!require(ggfortify)){install.packages("ggfortify")}
 
 
 # Functions ---------------------------------------------------------------
