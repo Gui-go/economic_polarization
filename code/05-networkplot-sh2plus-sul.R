@@ -33,10 +33,6 @@ source("code/functions/data_loc.R")
 loc <- data_loc(c('SC', 'PR', 'RS'))
 
 
-
-
-
-
 ss <- vroom::vroom(file = "data/clean/EXP_COMPLETA_MUN.csv")
 
 exp6 <- ss %>% 
@@ -59,7 +55,22 @@ exp6 <- ss %>%
   ) %>% 
   dplyr::filter(exp>=100) %>% 
   dplyr::select(sg_uf, sh2, exp)
+
 exp6
+scncm <- exp6[, c('sg_uf', 'sh2')] %>% dplyr::filter(sg_uf=='SC') %>% dplyr::select(sh2) %>% pull()
+
+ncm <- read_excel("data/clean/tabela_ncm.xls", skip = 3) 
+ncmf <- ncm %>% 
+  janitor::clean_names() %>% 
+  dplyr::select(codigo_ncm_sh2, descricao) %>% 
+  na.omit() %>% 
+  dplyr::filter(codigo_ncm_sh2 %in% unique(exp6$sh2)) #%>%
+  # dplyr::filter(codigo_ncm_sh2 %in% as.character(scncm))
+  # View()
+
+ncmf[which(ncmf$codigo_ncm_sh2=="72"), "descricao"]
+ncmf[c(20:30), ]
+
 ig <- igraph::graph_from_data_frame(exp6, directed = FALSE)
 ig
 
