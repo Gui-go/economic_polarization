@@ -36,10 +36,14 @@ rais2 <- rais1 %>%
     idade >= 18,
     qtd_hora_contr > 12,
     vl_remun > 1000,
-    vl_remun < 40000
+    vl_remun < 40000,
+    tipo_salaraio=='01'
   ) %>% 
-  select(esc, xp, idade, raca_cor, sexo_trabalhador, ibge_subsetor, vl_remun, vl_remun_ph)
+  select(esc, cbo_ocupacao_2002, xp, idade, raca_cor, sexo_trabalhador, ibge_subsetor, vl_remun, vl_remun_ph)
 rm(rais1)
+
+# rio::export(rais2, "data/clean/rais2.csv")
+# rais2 <- read_csv("data/clean/rais2.csv")
 
 # ggplot(rais2)+
 #   geom_boxplot(aes(x = ibge_subsetor, y = vl_remun_ph, fill = ibge_subsetor))+
@@ -119,7 +123,143 @@ res
 table(rais3$esc)
 
 
+# CBO 251205 Economista ---------------------------------------------------
 
+rais_cbo_econ <- rais2 %>% 
+  dplyr::filter(cbo_ocupacao_2002==251205) %>% 
+  dplyr::mutate(log_vl_remun_ph = log(vl_remun_ph))
+
+# rais_cbo_econ <- rais1 %>% 
+#   dplyr::filter(cbo_ocupacao_2002==251205)
+# rio::export(rais_cbo_econ, "rais_cbo_econ.csv")
+
+# unique(rais_cbo_econ$esc)
+
+source("code/functions/fct_cormatrix.R")
+matrixCorrelationPlot(rais_cbo_econ %>% dplyr::select(esc, vl_remun_ph, log_vl_remun_ph))
+
+(lm <- lm(vl_remun_ph ~ esc, data = rais_cbo_econ))
+(slm <- summary(lm))
+hist(lm$residuals)
+
+(lm <- lm(log(vl_remun_ph) ~ esc, data = rais_cbo_econ))
+(slm <- summary(lm))
+hist(lm$residuals)
+
+
+# Descriptive analysis ----------------------------------------------------
+
+rais_cbo_econ <- readr::read_csv("data/clean/rais_cbo_econ.csv")
+rais_cbo_econ2 <- rais_cbo_econ %>% 
+  dplyr::mutate(
+    esc = as.numeric(escolaridade_apos_2005),
+    vl_remun = as.numeric(gsub(",", '.', stringr::str_remove(vl_remun_media_nom, "^0+"))),
+    vl_remun_ph = vl_remun/(qtd_hora_contr*4),
+    xp = idade -18
+  ) %>% 
+  dplyr::filter(
+    nacionalidade %in% c(10, 20),
+    ind_portador_defic == 0,
+    vinculo_ativo_31_12 == 1,
+    idade >= 18,
+    qtd_hora_contr > 12,
+    vl_remun > 1000,
+    vl_remun < 40000#,
+    # tipo_salaraio=='01'
+  ) %>% 
+  select(esc, cbo_ocupacao_2002, xp, idade, raca_cor, sexo_trabalhador, ibge_subsetor, vl_remun, vl_remun_ph, cnae_2_0_classe, cnae_95_classe, mes_desligamento)
+
+rais_cbo_econ2 %>% 
+  group_by(cnae_2_0_classe) %>% 
+  summarise(nn = n()) %>% 
+  arrange(desc(nn)) %>% 
+  filter(nn >= 10)
+
+
+# CNAE: 
+# 84116 -> Administração Pública em Geral; 
+# 82113 -> Serviços combinados de escritório e apoio administrativo
+
+
+
+
+# Quem ganha mais? Homens ou Mulheres? ------------------------------------
+# -------------------------------
+# Comparação entre homens e mulheres economistas
+# http://www.sthda.com/english/wiki/unpaired-two-samples-t-test-in-r
+
+rais_cbo_econ <- readr::read_csv("data/clean/rais_cbo_econ.csv")
+rais_cbo_econ_f <- rais_cbo_econ %>% 
+  dplyr::mutate(
+    esc = as.numeric(escolaridade_apos_2005),
+    vl_remun = as.numeric(gsub(",", '.', stringr::str_remove(vl_remun_media_nom, "^0+"))),
+    vl_remun_ph = vl_remun/(qtd_hora_contr*4)
+  ) %>% 
+  tidyr::drop_na() %>% 
+  dplyr::filter(vl_remun>0, vl_remun_ph<500) %>% 
+  dplyr::select("escolaridade_apos_2005", "qtd_hora_contr", "idade", "raca_cor", "sexo_trabalhador", 'vl_remun', 'vl_remun_ph')
+
+ggplot(rais_cbo_econ_f)+
+  geom_boxplot(aes(x = sexo_trabalhador, y = vl_remun_ph, fill = sexo_trabalhador))+
+  scale_fill_manual(values = c("#999999", "#E69F00"))+
+  theme_minimal()
+
+ggplot(rais_cbo_econ_f)+
+  geom_density(aes(x=vl_remun_ph, fill=sexo_trabalhador), alpha=.5)+
+  theme_minimal()
+
+# rais_cbo_econ_f$vl_remun_ph
+rais_cbo_econ_fm<-rais_cbo_econ_f[which(rais_cbo_econ_f$sexo_trabalhador=='01'), ]
+rais_cbo_econ_ff<-rais_cbo_econ_f[which(rais_cbo_econ_f$sexo_trabalhador=='02'), ]
+tt <- t.test(rais_cbo_econ_fm$vl_remun_ph, rais_cbo_econ_ff$vl_remun_ph, alternative = "two.sided", var.equal = FALSE, conf.level = .70)
+tt$estimate
+tt$conf.int[1]
+mean(rais_cbo_econ_fm$vl_remun_ph)-tt$conf.int[1]
+mean(rais_cbo_econ_ff$vl_remun_ph)+tt$conf.int[2]
+
+
+
+# Spatial Analysis --------------------------------------------------------
+
+rais_cbo_econ <- readr::read_csv("data/clean/rais_cbo_econ.csv")
+rais_cbo_econ %>% 
+  group_by(cnae_2_0_subclasse) %>% 
+  summarise(nn=n()) %>% 
+  arrange(desc(nn))
+
+rais_cbo_econ_fs <- rais_cbo_econ %>% 
+  dplyr::mutate(
+    esc = as.numeric(escolaridade_apos_2005),
+    vl_remun = as.numeric(gsub(",", '.', stringr::str_remove(vl_remun_media_nom, "^0+"))),
+    vl_remun_ph = vl_remun/(qtd_hora_contr*4),
+    cd_mun = as.character(municipio)
+  ) %>% 
+  tidyr::drop_na() %>% 
+  dplyr::filter(vl_remun>0, vl_remun_ph<500) %>% 
+  dplyr::select("escolaridade_apos_2005", "qtd_hora_contr", "idade", "raca_cor", "sexo_trabalhador", 'vl_remun', 'vl_remun_ph', 'mun_trab', 'cd_mun')
+
+rais_cbo_econ_fsc <- rais_cbo_econ_fs %>% 
+  group_by(cd_mun) %>% 
+  summarise(count=n())
+
+# Localizações
+source("code/functions/data_loc.R")
+loc <- data_loc(c('SC', 'PR', 'RS'))
+410690%in%loc$cd_micro
+# Poligonos de SC
+source("code/functions/data_sul_shp.R")
+sf <- get_sul_sf() %>% 
+  dplyr::mutate(cd_mun=as.character(cd_mun))
+# plot(sf['sigla_uf'])
+
+rais_cbo_econ_fsc$cd_mun
+rais_cbo_econ_fsc2 <- left_join(sf, rais_cbo_econ_fsc, by = "cd_mun")
+# sapply(rais_cbo_econ_fsc2$count, unique)
+
+sf$cd_mun
+rais_cbo_econ_fsc$cd_mun
+
+sapply(rais_cbo_econ_fs, unique)
 
 # 11, 13, 15, 16, 17, 22, 23
 # 04, 11, 15, 18, 21, 23, 24, 25
@@ -150,3 +290,6 @@ table(rais3$esc)
 # Ensino	23
 # Administraçao pública direta e autárquica	24
 # Agricultura, silvicultura, criaçao de animais, extrativismo vegetal	25
+
+
+
