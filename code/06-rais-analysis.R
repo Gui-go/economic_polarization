@@ -169,6 +169,50 @@ rais_cbo_econ2 <- rais_cbo_econ %>%
   ) %>% 
   select(esc, cbo_ocupacao_2002, xp, idade, raca_cor, sexo_trabalhador, ibge_subsetor, vl_remun, vl_remun_ph, cnae_2_0_classe, cnae_95_classe, mes_desligamento)
 
+sapply(rais_cbo_econ2, unique)
+
+ggplot(rais_cbo_econ2)+
+  geom_boxplot(aes(x = factor(esc, levels = c(9, 10, 11)), y = vl_remun_ph, fill = factor(esc, levels = c(9, 10, 11))))+
+  scale_fill_manual(values = c("#999999", "#E69F00", "#E12F00"))+
+  labs(
+    title = "Boxplots da remuneração por hora", 
+    x = "Escolaridade",
+    y = "Valor da remuneração por hora", 
+    fill = "Escolaridade"
+  )+
+  theme_minimal()
+
+ggplot(rais_cbo_econ2)+
+  geom_density(aes(x=vl_remun_ph, fill= factor(esc, levels = c(9, 10, 11))), alpha=.5)+
+  scale_fill_manual(values = c("#999999", "#E69F00", "#E12F00"))+
+  labs(
+    title = "Densidade da remuneração por hora", 
+    x = "Valor da remuneração por hora",
+    y = "Densidade", 
+    fill = "Escolaridade"
+  )+
+  theme_minimal()
+
+df <- rais_cbo_econ2 %>% 
+  dplyr::group_by(esc) %>% 
+  dplyr::summarise(mean_vl_remun_ph = mean(vl_remun_ph))
+
+ggplot2::ggplot(
+  df, aes(x = factor(esc, levels = c(9, 10, 11), labels = c("Graduação", "Mestrado", "Doutorado")),
+          y = mean_vl_remun_ph, 
+          fill = factor(esc, levels = c(9, 10, 11), labels = c("Graduação", "Mestrado", "Doutorado")))
+)+
+  ggplot2::geom_col()+
+  scale_fill_manual(values = c("#999999", "#E69F00", "#E12F00"))+
+  labs(
+    title = "Média da remuneração por hora",
+    x = "Escolaridade",
+    y = "Valor da remuneração por hora", 
+    fill = "Escolaridade"
+  )+
+  theme_minimal()
+
+
 rais_cbo_econ2 %>% 
   group_by(cnae_2_0_classe) %>% 
   summarise(nn = n()) %>% 

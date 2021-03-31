@@ -70,11 +70,11 @@ br_loc <- data_loc('SC')
 #   scale_fill_viridis_c(option = "plasma", trans = "sqrt") +
 #   labs(title = 'Regiões imediatas do Brasil', fill = 'Legenda')
 
-plot(br_uf['cd_uf'])
-plot(br_meso['cd_meso'])
-plot(br_micro['cd_micro'])
-plot(br_rgi['cd_rgi'])
-plot(br_rgint['cd_rgint'])
+plot(br_shp[['br_uf']]['cd_uf'])
+plot(br_shp[['br_meso']]['cd_meso'])
+plot(br_shp[['br_micro']]['cd_micro'])
+plot(br_shp[['br_rgi']]['cd_rgi'])
+plot(br_shp[['br_rgint']]['cd_rgint'])
 
 
 br_shp_f <- list()
