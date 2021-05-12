@@ -7,7 +7,7 @@ data_exp_comex <- function(ufs, sh2s){
         suppressMessages() %>% 
         janitor::clean_names() %>% 
         dplyr::filter(co_ano>=2010) %>%
-        dplyr::filter(sg_uf_mun%in%c(ufs)) %>%
+        # dplyr::filter(sg_uf_mun%in%c(ufs)) %>%
         dplyr::mutate(exp_fob=if_else(is.na(vl_fob), 0, vl_fob)) %>% 
         dplyr::mutate("sh2" = substr(sh4, 1, 2)) %>%
         # dplyr::filter(sh2==sh2s) %>%

@@ -22,7 +22,9 @@ rais1 <- readr::read_delim(
   locale = readr::locale(encoding = "ISO-8859-1"), trim_ws = TRUE) %>% 
   janitor::clean_names()
 
-rais2 <- rais1 %>% 
+colnames(rais1)
+
+rais2 <- rais1 %>%
   dplyr::mutate(
     esc = as.numeric(escolaridade_apos_2005),
     vl_remun = as.numeric(gsub(",", '.', stringr::str_remove(vl_remun_media_nom, "^0+"))),
@@ -36,8 +38,8 @@ rais2 <- rais1 %>%
     idade >= 18,
     qtd_hora_contr > 12,
     vl_remun > 1000,
-    vl_remun < 40000,
-    tipo_salaraio=='01'
+    vl_remun < 40000#,
+    # tipo_salaraio=='01'
   ) %>% 
   select(esc, cbo_ocupacao_2002, xp, idade, raca_cor, sexo_trabalhador, ibge_subsetor, vl_remun, vl_remun_ph)
 rm(rais1)
@@ -155,6 +157,7 @@ rais_cbo_econ2 <- rais_cbo_econ %>%
     esc = as.numeric(escolaridade_apos_2005),
     vl_remun = as.numeric(gsub(",", '.', stringr::str_remove(vl_remun_media_nom, "^0+"))),
     vl_remun_ph = vl_remun/(qtd_hora_contr*4),
+    log_vl_remun_ph = log(vl_remun_ph),
     xp = idade -18
   ) %>% 
   dplyr::filter(
@@ -171,8 +174,11 @@ rais_cbo_econ2 <- rais_cbo_econ %>%
 
 sapply(rais_cbo_econ2, unique)
 
+source("code/functions/fct_cormatrix.R")
+matrixCorrelationPlot(rais_cbo_econ2 %>% dplyr::select(vl_remun_ph, log_vl_remun_ph, esc, idade))
+
 ggplot(rais_cbo_econ2)+
-  geom_boxplot(aes(x = factor(esc, levels = c(9, 10, 11)), y = vl_remun_ph, fill = factor(esc, levels = c(9, 10, 11))))+
+  geom_boxplot(aes(x = factor(esc, levels = c(9, 10, 11), labels = c("Graduação", "Mestrado", "Doutorado")), y = vl_remun_ph, fill = factor(esc, levels = c(9, 10, 11), labels = c("Graduação", "Mestrado", "Doutorado"))))+
   scale_fill_manual(values = c("#999999", "#E69F00", "#E12F00"))+
   labs(
     title = "Boxplots da remuneração por hora", 
@@ -183,7 +189,7 @@ ggplot(rais_cbo_econ2)+
   theme_minimal()
 
 ggplot(rais_cbo_econ2)+
-  geom_density(aes(x=vl_remun_ph, fill= factor(esc, levels = c(9, 10, 11))), alpha=.5)+
+  geom_density(aes(x = vl_remun_ph, fill = factor(esc, levels = c(9, 10, 11), labels = c("Graduação", "Mestrado", "Doutorado"))), alpha=.5)+
   scale_fill_manual(values = c("#999999", "#E69F00", "#E12F00"))+
   labs(
     title = "Densidade da remuneração por hora", 
@@ -244,12 +250,25 @@ rais_cbo_econ_f <- rais_cbo_econ %>%
   dplyr::select("escolaridade_apos_2005", "qtd_hora_contr", "idade", "raca_cor", "sexo_trabalhador", 'vl_remun', 'vl_remun_ph')
 
 ggplot(rais_cbo_econ_f)+
-  geom_boxplot(aes(x = sexo_trabalhador, y = vl_remun_ph, fill = sexo_trabalhador))+
-  scale_fill_manual(values = c("#999999", "#E69F00"))+
+  geom_boxplot(aes(x = factor(sexo_trabalhador, levels = c("01", "02"), labels = c("Homens", "Mulheres")), y = vl_remun_ph, fill = factor(sexo_trabalhador, levels = c("01", "02"), labels = c("Homens", "Mulheres"))))+
+  scale_fill_manual(values = c("#62aec5", "#e64072"))+
+  labs(
+    title = "Boxplots da remuneração por hora",
+    x = "Sexo",
+    y = "Valor da remuneração por hora", 
+    fill = "Sexo"
+  )+
   theme_minimal()
 
 ggplot(rais_cbo_econ_f)+
-  geom_density(aes(x=vl_remun_ph, fill=sexo_trabalhador), alpha=.5)+
+  geom_density(aes(x=vl_remun_ph, fill=factor(sexo_trabalhador, levels = c("01", "02"), labels = c("Homens", "Mulheres"))), alpha=.5)+
+  scale_fill_manual(values = c("#62aec5", "#e64072"))+
+  labs(
+    title = "Densidade da remuneração por hora",
+    y = "Densidade",
+    x = "Valor da remuneração por hora", 
+    fill = "Sexo"
+  )+
   theme_minimal()
 
 # rais_cbo_econ_f$vl_remun_ph
@@ -266,12 +285,8 @@ mean(rais_cbo_econ_ff$vl_remun_ph)+tt$conf.int[2]
 # Spatial Analysis --------------------------------------------------------
 
 rais_cbo_econ <- readr::read_csv("data/clean/rais_cbo_econ.csv")
-rais_cbo_econ %>% 
-  group_by(cnae_2_0_subclasse) %>% 
-  summarise(nn=n()) %>% 
-  arrange(desc(nn))
 
-rais_cbo_econ_fs <- rais_cbo_econ %>% 
+rais_cbo_econ_fs <- rais_cbo_econ %>%
   dplyr::mutate(
     esc = as.numeric(escolaridade_apos_2005),
     vl_remun = as.numeric(gsub(",", '.', stringr::str_remove(vl_remun_media_nom, "^0+"))),
@@ -335,5 +350,134 @@ sapply(rais_cbo_econ_fs, unique)
 # Administraçao pública direta e autárquica	24
 # Agricultura, silvicultura, criaçao de animais, extrativismo vegetal	25
 
+
+
+source("code/functions/fct_cormatrix.R")
+matrixCorrelationPlot(rais_cbo_econ2 %>% dplyr::select(esc, vl_remun_ph, log_vl_remun_ph))
+
+rais_cbo_econ2$log_vl_remun_ph = log(rais_cbo_econ2$vl_remun_ph)
+rais_cbo_econ2$log_esc = log(rais_cbo_econ2$esc)
+rais_cbo_econ2$log_idade = log(rais_cbo_econ2$idade)
+
+ggplotRegression <- function (fit) {
+  ggplot(fit$model, aes_string(x = names(fit$model)[2], y = names(fit$model)[1])) + 
+    geom_point() +
+    stat_smooth(method = "lm", col = "blue", se=F) +
+    labs(title = paste("Adj R2 = ",round(signif(summary(fit)$adj.r.squared, 5), 3),
+                       "Intercept =",round(signif(fit$coef[[1]],5 ), 3),
+                       " Slope =",round(signif(fit$coef[[2]], 5), 3),
+                       " P =",round(signif(summary(fit)$coef[2,4], 5), 3)))+
+    theme_minimal()+
+    theme(axis.title.y = element_text(size=13, face = "bold"),
+          axis.title.x = element_text(size=13, face = "bold"))
+}
+
+gg3 <- function(fit){
+  ggplot(fit$model, aes_string(x = names(fit$model)[2], y = names(fit$model)[1], color = names(fit$model)[3])) + 
+    geom_point() +
+    stat_smooth(method = "lm", col = "blue", se=F) +
+    labs(title = paste("Adj R2 = ",round(signif(summary(fit)$adj.r.squared, 5), 3),
+                       "Intercept =",round(signif(fit$coef[[1]],5 ), 3),
+                       " Slope =",round(signif(fit$coef[[2]], 5), 3),
+                       " P =",round(signif(summary(fit)$coef[2,4], 5), 3)))+
+    theme_minimal()+
+    theme(axis.title.y = element_text(size=13, face = "bold"),
+          axis.title.x = element_text(size=13, face = "bold"),
+          legend.title = element_text(size=13, face = "bold"))+
+    scale_color_gradientn(colours = rainbow(4))
+}
+
+(lm <- lm(vl_remun_ph ~ esc, data = rais_cbo_econ2))
+(slm <- summary(lm))
+hist(lm$residuals)
+ggplot(lm, aes(lm$residuals))+geom_density()+theme_minimal()+labs(x="Resíduos", y="Densidade")+theme(axis.title.y = element_text(size=18, face = "bold"), axis.title.x = element_text(size=18, face = "bold"))
+ggplotRegression(lm)
+matrixCorrelationPlot(rais_cbo_econ2 %>% dplyr::select(esc, vl_remun_ph))
+
+(lm <- lm(vl_remun_ph ~ idade, data = rais_cbo_econ2))
+(slm <- summary(lm))
+hist(lm$residuals)
+ggplot(lm, aes(lm$residuals))+geom_density()+theme_minimal()+labs(x="Resíduos", y="Densidade")+theme(axis.title.y = element_text(size=18, face = "bold"), axis.title.x = element_text(size=18, face = "bold"))
+ggplotRegression(lm)
+matrixCorrelationPlot(rais_cbo_econ2 %>% dplyr::select(idade, vl_remun_ph))
+
+(lm <- lm(log_vl_remun_ph ~ log_idade, data = rais_cbo_econ2))
+(slm <- summary(lm))
+hist(lm$residuals)
+ggplot(lm, aes(lm$residuals))+geom_density()+theme_minimal()+labs(x="Resíduos", y="Densidade")+theme(axis.title.y = element_text(size=18, face = "bold"), axis.title.x = element_text(size=18, face = "bold"))
+ggplotRegression(lm)
+matrixCorrelationPlot(rais_cbo_econ2 %>% dplyr::select(idade, vl_remun_ph))
+
+(lm <- lm(log_vl_remun_ph ~ esc, data = rais_cbo_econ2)) # ***
+(slm <- summary(lm))
+hist(lm$residuals)
+ggplot(lm, aes(lm$residuals))+geom_density()+theme_minimal()+labs(x="Resíduos", y="Densidade")+theme(axis.title.y = element_text(size=18, face = "bold"), axis.title.x = element_text(size=18, face = "bold"))
+ggplotRegression(lm)
+cor(as.numeric(lm$residuals), rais_cbo_econ2$idade)
+cor(as.numeric(lm$residuals), rais_cbo_econ2$log_esc)
+cor(as.numeric(lm$residuals), rais_cbo_econ2$esc)
+cor(as.numeric(lm$residuals), rais_cbo_econ2$log_esc)
+
+(lm <- lm(vl_remun_ph ~ log_esc, data = rais_cbo_econ2))
+(slm <- summary(lm))
+hist(lm$residuals)
+ggplot(lm, aes(lm$residuals))+geom_density()+theme_minimal()+labs(x="Resíduos", y="Densidade")+theme(axis.title.y = element_text(size=18, face = "bold"), axis.title.x = element_text(size=18, face = "bold"))
+ggplotRegression(lm)
+cor(as.numeric(lm$residuals), rais_cbo_econ2$idade)
+cor(as.numeric(lm$residuals), rais_cbo_econ2$log_esc)
+cor(as.numeric(lm$residuals), rais_cbo_econ2$esc)
+cor(as.numeric(lm$residuals), rais_cbo_econ2$log_esc)
+
+
+(lm <- lm(log_vl_remun_ph ~ log_esc, data = rais_cbo_econ2))
+(slm <- summary(lm))
+hist(lm$residuals)
+ggplot(lm, aes(lm$residuals))+geom_density()+theme_minimal()+labs(x="Resíduos", y="Densidade")+theme(axis.title.y = element_text(size=18, face = "bold"), axis.title.x = element_text(size=18, face = "bold"))
+ggplotRegression(lm)
+
+# multivariated
+
+(lm <- lm(log_vl_remun_ph ~ log_esc + idade, data = rais_cbo_econ2))
+(slm <- summary(lm))
+hist(lm$residuals)
+ggplotRegression(lm)
+gg3(lm)
+cor(as.numeric(lm$residuals), rais_cbo_econ2$idade)
+cor(as.numeric(lm$residuals), rais_cbo_econ2$log_esc)
+cor(as.numeric(lm$residuals), rais_cbo_econ2$esc)
+cor(as.numeric(lm$residuals), rais_cbo_econ2$log_esc)
+
+(lm <- lm(log_vl_remun_ph ~ log_esc + log_idade, data = rais_cbo_econ2))
+(slm <- summary(lm))
+hist(lm$residuals)
+ggplotRegression(lm)
+gg3(lm)
+
+(lm <- lm(log_vl_remun_ph ~ log_idade + log_esc, data = rais_cbo_econ2))
+(slm <- summary(lm))
+hist(lm$residuals)
+ggplotRegression(lm)
+gg3(lm)
+
+(lm <- lm(log_vl_remun_ph ~ log_idade + esc, data = rais_cbo_econ2))
+(slm <- summary(lm))
+hist(lm$residuals)
+ggplot(lm, aes(lm$residuals))+geom_density()+theme_minimal()+labs(x="Resíduos", y="Densidade")+theme(axis.title.y = element_text(size=18, face = "bold"), axis.title.x = element_text(size=18, face = "bold"))
+ggplotRegression(lm)
+gg3(lm)
+
+(lm <- lm(log_vl_remun_ph ~ esc + log_idade, data = rais_cbo_econ2))
+(slm <- summary(lm))
+hist(lm$residuals)
+ggplot(lm, aes(lm$residuals))+geom_density()+theme_minimal()+labs(x="Resíduos", y="Densidade")+theme(axis.title.y = element_text(size=18, face = "bold"), axis.title.x = element_text(size=18, face = "bold"))
+ggplotRegression(lm)
+gg3(lm)
+min(rais_cbo_econ2$idade); max(rais_cbo_econ2$idade)
+log(72)
+log(55)
+log(43)
+log(33)
+log(26)
+log(19)
 
 

@@ -55,6 +55,7 @@ exp_sh2 <- data_exp_comex(c('SC', 'PR', 'RS'), sh2s = TRUE)
 # Section-sh2 identifiers
 source(file = "code/functions/data_hs_sections.R")
 hs_sections <- data_hs_sections()
+unique(hs_sections$section)
 
 # Localizações
 source("code/functions/data_loc.R")
@@ -89,12 +90,12 @@ matrixCorrelationPlot(
 
 # Gráfico de correlação
 cor_plot <- ggplot2::ggplot(data_sh0) +
-  ggplot2::geom_point(ggplot2::aes(x = log_pop_sup_comp, y = log_exp, label = nm_micro, colour=factor(sg_uf, levels = c('PR', 'SC', 'RS'), labels = c('PR', 'SC', 'RS'))), size = 3, alpha = .86) +
+  ggplot2::geom_point(ggplot2::aes(x = log_pop_sup_comp, y = log_exp, label = nm_micro, colour=factor(sg_uf, levels = c('PR', 'SC', 'RS'), labels = c('PR', 'SC', 'RS'))), size = 4, alpha = .76, label="") +
   ggplot2::geom_line(aes(x=log_pop_sup_comp, y=predict(lm(log_exp ~ log_pop_sup_comp)))) +
   ggplot2::labs(
     title = 'Gráfico de correlação',
     y = 'Log exportações fob',
-    x = 'População com curso superior completo',
+    x = 'Log População com curso superior completo',
     colour = 'UF'
   ); cor_plot
 
@@ -190,7 +191,7 @@ res <- res %>%
   dplyr::mutate(elast_rank = dplyr::dense_rank(desc(b1_est))) %>% 
   dplyr::arrange(elast_rank) %>% 
   dplyr::select(elast_rank, cd_exp, b1_est, dplyr::everything())
-# res %>% view()
+# res %>% View()
 
 # Gráfico de Intervalos de confinça
 gg2 <- ggplot(res)+
@@ -204,6 +205,7 @@ gg2 <- ggplot(res)+
     x = "Seções de produtos ",
     caption = "Guigo"
   ); gg2
+
 
 
 

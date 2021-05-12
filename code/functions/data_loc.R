@@ -1,4 +1,7 @@
 # Dados das localizações e divisões regionais do Brasil através da API de serviços IBGE
+
+library(dplyr)
+
 data_loc <- function(ufs){
   req <- httr::GET(paste0('https://servicodados.ibge.gov.br/api/v1/localidades/estados/', paste0(ufs, collapse = '|'), '/municipios'))
   if(req$status_code == 200){
@@ -27,4 +30,4 @@ data_loc <- function(ufs){
   }
   return(res)
 }
-# data_loc('SC')
+

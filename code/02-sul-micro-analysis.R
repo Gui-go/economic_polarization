@@ -44,14 +44,32 @@ source("code/functions/data_df_t1554.R")
 df_t1554 <- data_df_t1554(c(41, 42, 43))
 
 # Exportações
-source("code/functions/data_exp_mun.R")
-exp_comex <- exp_comex(c('SC', 'PR', 'RS'))
+# source("code/functions/data_exp_mun.R")
+# exp_comex <- data_exp_comex(sh2s = "", ufs = c('SC', 'PR', 'RS'))
+exp_comex <- vroom::vroom(file = "data/clean/EXP_COMPLETA_MUN.csv") %>% 
+  suppressMessages() %>% 
+  janitor::clean_names() %>% 
+  dplyr::filter(co_ano>=2010) %>%
+  # dplyr::filter(sg_uf_mun%in%c(ufs)) %>%
+  dplyr::mutate(exp_fob=if_else(is.na(vl_fob), 0, vl_fob)) %>% 
+  dplyr::mutate("sh2" = substr(sh4, 1, 2)) %>%
+  # dplyr::filter(sh2==sh2s) %>%
+  dplyr::group_by(co_mun, sh2) %>%
+  dplyr::summarise(exp_fob = sum(exp_fob)) %>% 
+  dplyr::mutate(cd_mun=as.character(co_mun)) %>% 
+  dplyr::ungroup() %>% 
+  dplyr::select(cd_mun, sh2, exp_fob)
+
+
 
 # Localizações
 source("code/functions/data_loc.R")
-loc <- data_loc(c('SC', 'PR', 'RS'))
+# loc <- data_loc(c('SC', 'PR', 'RS'))
+sc <- data_loc(c('SC')); pr <- data_loc(c('PR')); rs <- data_loc(c('RS'))
+loc <- bind_rows(list(sc, pr, rs))
+dim(loc)
 
-# Poligonos de SC
+# Poligonos do Sul
 source("code/functions/data_sul_shp.R")
 sf <- get_sul_sf()
 plot(sf['sigla_uf'])
@@ -91,7 +109,9 @@ matrixCorrelationPlot(
 
 
 # Model -------------------------------------------------------------------
-
+# data_bck <- data
+# data <- data_bck
+data <- data %>% na.omit()
 # Aspatial linear model
 reg <- lm(log_exp ~ log_pop_sup_comp, data = data)
 summary(reg)
@@ -101,6 +121,12 @@ jtools::summ(reg, digits = 5)
 data$reg_res <- reg$residuals
 data$reg_res_norm <- normalize(reg$residuals)
 hist(data$reg_res_norm, 30)
+ggplot()+
+  geom_density(aes(data$reg_res))+
+  labs(title = "Densidade dos resíduos do modelo", x = "Resíduos", y = "Densidade")+
+  theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5))
+summary(data$reg_res)
+
 
 # Definição de visinhança entre as microrregiões
 nb <- spdep::poly2nb(data, queen=TRUE)
@@ -108,8 +134,10 @@ lw <- nb2listw(nb, style="W", zero.policy=TRUE)
 
 # Autocorrelação Espacial MC1
 spdep::moran.test(data$reg_res_norm, lw)
+spdep::moran.test(data$reg_res, lw)
 hist(data$reg_res, 30)
 plot(data['reg_res'])
+ggplot(data["reg_res"])+geom_sf(aes(fill = reg_res))
 plot(data['reg_res_norm'])
 shapiro.test(data$reg_res) # If p-value is small, data is not normally distributed
 
@@ -142,8 +170,8 @@ results <- as.data.frame(gwr_model$SDF)
 results$cd_micro <- data$cd_micro
 results$nm_micro <- data$nm_micro
 
-results %>% 
-  dplyr::select('cd_micro', 'nm_micro', 'log_pop_sup_comp', 'log_pop_sup_comp_se', 'gwr.e', 'pred', 'pred.se', 'localR2', 'coords.x1', 'coords.x2') %>% 
+results %>% # 'nm_micro', 
+  dplyr::select('cd_micro', 'log_pop_sup_comp', 'log_pop_sup_comp_se', 'gwr.e', 'pred', 'pred.se', 'localR2', 'coords.x1', 'coords.x2') %>% 
   knitr::kable(.)
 
 # Spatial df with the results from GWR attached to the polygons
